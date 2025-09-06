@@ -14,7 +14,245 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      attendance: {
+        Row: {
+          checked_in_by: string
+          checkin_method: string
+          checkin_time: string
+          event_id: string
+          id: string
+          registration_id: string
+          student_id: string
+        }
+        Insert: {
+          checked_in_by: string
+          checkin_method: string
+          checkin_time?: string
+          event_id: string
+          id?: string
+          registration_id: string
+          student_id: string
+        }
+        Update: {
+          checked_in_by?: string
+          checkin_method?: string
+          checkin_time?: string
+          event_id?: string
+          id?: string
+          registration_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: true
+            referencedRelation: "registrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      colleges: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          capacity: number | null
+          college_id: string
+          created_at: string
+          description: string | null
+          end_time: string
+          id: string
+          location: string | null
+          name: string
+          start_time: string
+          status: string
+          type: string
+        }
+        Insert: {
+          capacity?: number | null
+          college_id: string
+          created_at?: string
+          description?: string | null
+          end_time: string
+          id?: string
+          location?: string | null
+          name: string
+          start_time: string
+          status?: string
+          type: string
+        }
+        Update: {
+          capacity?: number | null
+          college_id?: string
+          created_at?: string
+          description?: string | null
+          end_time?: string
+          id?: string
+          location?: string | null
+          name?: string
+          start_time?: string
+          status?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback: {
+        Row: {
+          comments: string | null
+          event_id: string
+          id: string
+          rating: number
+          student_id: string
+          submitted_at: string
+        }
+        Insert: {
+          comments?: string | null
+          event_id: string
+          id?: string
+          rating: number
+          student_id: string
+          submitted_at?: string
+        }
+        Update: {
+          comments?: string | null
+          event_id?: string
+          id?: string
+          rating?: number
+          student_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registrations: {
+        Row: {
+          event_id: string
+          id: string
+          registered_at: string
+          source: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          registered_at?: string
+          source?: string
+          status?: string
+          student_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          registered_at?: string
+          source?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          college_id: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          roll_no: string | null
+        }
+        Insert: {
+          college_id: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          roll_no?: string | null
+        }
+        Update: {
+          college_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          roll_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_college_id_fkey"
+            columns: ["college_id"]
+            isOneToOne: false
+            referencedRelation: "colleges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

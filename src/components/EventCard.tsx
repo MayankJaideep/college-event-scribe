@@ -10,6 +10,7 @@ interface EventCardProps {
   onRegister?: (eventId: string) => void;
   isRegistered?: boolean;
   showRegistration?: boolean;
+  isLoading?: boolean;
 }
 
 const getEventVariant = (type: Event['type']) => {
@@ -24,7 +25,7 @@ const getEventVariant = (type: Event['type']) => {
   return variants[type] || 'default';
 };
 
-export function EventCard({ event, onRegister, isRegistered, showRegistration = true }: EventCardProps) {
+export function EventCard({ event, onRegister, isRegistered, showRegistration = true, isLoading }: EventCardProps) {
   const startDate = new Date(event.start_time);
   const endDate = new Date(event.end_time);
   const isUpcoming = startDate > new Date();

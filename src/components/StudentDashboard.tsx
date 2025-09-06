@@ -1,73 +1,110 @@
-import { useState, useMemo } from 'react';
-import { Layout } from '@/components/Layout';
-import { EventCard } from '@/components/EventCard';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Filter, Calendar, Trophy, Users } from 'lucide-react';
-import { events, registrations } from '@/lib/mockData';
+import React, { useState, useMemo } from 'react';
+import { Layout } from './Layout';
+import { EventCard } from './EventCard';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, MapPin, Users, Clock, Search } from 'lucide-react';
 import { Event } from '@/types';
-import { useToast } from '@/hooks/use-toast';
+import { useEvents, useRegisterEvent, useStudentRegistrations } from '@/hooks/useEvents';
+import { useToast } from "@/hooks/use-toast";
 
 export function StudentDashboard() {
+  // Mock user data - in a real app, this would come from auth
+  const currentUserId = '550e8400-e29b-41d4-a716-446655440000'; // Mock student ID
+  
+  // State for filters and view
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [currentView, setCurrentView] = useState<'browse' | 'my-events'>('browse');
+  
   const { toast } = useToast();
-
-  // Mock student registrations
-  const studentRegistrations = registrations.filter(reg => reg.student_id === '1');
-  const registeredEventIds = new Set(studentRegistrations.map(reg => reg.event_id));
-
+  const { data: events = [], isLoading } = useEvents();
+  const { data: userRegistrations = [] } = useStudentRegistrations(currentUserId);
+  const registerMutation = useRegisterEvent();
+  
+  // Filter events based on search, type, status, and current view
   const filteredEvents = useMemo(() => {
     let filtered = events;
     
-    if (currentView === 'my-events') {
-      filtered = events.filter(event => registeredEventIds.has(event.id));
-    }
-    
+    // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(event => 
+      filtered = filtered.filter(event =>
         event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         event.location.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
+    // Filter by type
     if (selectedType !== 'all') {
       filtered = filtered.filter(event => event.type === selectedType);
     }
     
+    // Filter by status
     if (selectedStatus !== 'all') {
       filtered = filtered.filter(event => event.status === selectedStatus);
     }
     
+    // Filter by current view
+    if (currentView === 'my-events') {
+      filtered = filtered.filter(event => userRegistrations.includes(event.id));
+    }
+    
     return filtered;
-  }, [searchQuery, selectedType, selectedStatus, currentView, registeredEventIds]);
+  }, [searchQuery, selectedType, selectedStatus, currentView, userRegistrations, events]);
 
-  const handleRegister = (eventId: string) => {
-    const event = events.find(e => e.id === eventId);
-    if (event) {
+  // Handle event registration
+  const handleRegister = async (eventId: string) => {
+    try {
+      await registerMutation.mutateAsync({
+        eventId,
+        studentId: currentUserId
+      });
       toast({
         title: "Registration Successful!",
-        description: `You've been registered for "${event.name}". Check your email for confirmation.`,
+        description: "You have been registered for the event.",
       });
-      // Here you would typically make an API call
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Unable to register for this event.",
+        variant: "destructive"
+      });
     }
   };
 
+  // Calculate statistics
   const stats = {
     totalEvents: events.length,
-    registeredEvents: studentRegistrations.length,
-    upcomingEvents: events.filter(e => new Date(e.start_time) > new Date()).length,
+    registeredEvents: userRegistrations.length,
+    upcomingEvents: events.filter(event => 
+      new Date(event.start_time) > new Date() && event.status === 'scheduled'
+    ).length,
   };
+
+  if (isLoading) {
+    return (
+      <Layout currentPage={currentView === 'browse' ? 'events' : 'registrations'} userType="student">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-muted-foreground">Loading events...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout currentPage={currentView === 'browse' ? 'events' : 'registrations'} userType="student">
       <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Student Portal</h1>
+          <p className="text-muted-foreground">Discover and register for campus events</p>
+        </div>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-gradient-card border-0">
@@ -101,7 +138,7 @@ export function StudentDashboard() {
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 Upcoming Events
               </CardTitle>
-              <Trophy className="h-4 w-4 text-success" />
+              <Clock className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{stats.upcomingEvents}</div>
@@ -178,7 +215,8 @@ export function StudentDashboard() {
                 key={event.id}
                 event={event}
                 onRegister={handleRegister}
-                isRegistered={registeredEventIds.has(event.id)}
+                isRegistered={userRegistrations.includes(event.id)}
+                isLoading={registerMutation.isPending}
                 showRegistration={currentView === 'browse'}
               />
             ))

@@ -1,50 +1,54 @@
-import { useState } from 'react';
-import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  BarChart3, 
-  Calendar, 
-  Users, 
-  TrendingUp, 
-  Eye,
-  UserCheck,
-  Star,
-  Award,
-  Activity
-} from 'lucide-react';
-import { events, registrations, attendance, feedback } from '@/lib/mockData';
+import React, { useState } from 'react';
+import { Layout } from './Layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Calendar, Users, TrendingUp, Star, Plus, Download, UserCheck, FileText, Activity, BarChart3 } from 'lucide-react';
+import { useEvents } from '@/hooks/useEvents';
 import { formatDate } from '@/lib/dateUtils';
 
 export function AdminDashboard() {
-  const [selectedPeriod, setSelectedPeriod] = useState('this-month');
-
-  // Calculate analytics
+  const [selectedPeriod, setSelectedPeriod] = useState('last30days');
+  const { data: events = [], isLoading } = useEvents();
+  
+  // Calculate key metrics
   const totalEvents = events.length;
-  const totalRegistrations = registrations.length;
-  const totalAttendance = attendance.length;
-  const totalFeedback = feedback.length;
-  const averageRating = feedback.length > 0 
-    ? (feedback.reduce((sum, f) => sum + f.rating, 0) / feedback.length).toFixed(1)
-    : '0';
+  const totalRegistrations = events.reduce((sum, event) => sum + (event.registration_count || 0), 0);
+  const totalAttendance = events.reduce((sum, event) => sum + (event.attendance_count || 0), 0);
+  
+  // Calculate attendance rate
+  const attendanceRate = totalRegistrations > 0 
+    ? (totalAttendance / totalRegistrations) * 100 
+    : 0;
+  
+  // Prepare data for charts
+  const eventPopularity = events.map(event => ({
+    name: event.name.length > 20 ? event.name.substring(0, 20) + '...' : event.name,
+    registrations: event.registration_count || 0,
+    attendance: event.attendance_count || 0,
+    feedback: 0 // This would come from feedback table join
+  })).sort((a, b) => b.registrations - a.registrations).slice(0, 5);
+  
+  // Separate upcoming and completed events
+  const upcomingEvents = events.filter(event => 
+    new Date(event.start_time) > new Date() && event.status === 'scheduled'
+  );
+  
+  const completedEvents = events.filter(event => 
+    event.status === 'completed'
+  );
 
-  // Event popularity (most registered events)
-  const eventRegistrationCounts = events.map(event => ({
-    ...event,
-    registrationCount: registrations.filter(r => r.event_id === event.id).length,
-    attendanceCount: attendance.filter(a => a.event_id === event.id).length,
-    feedbackCount: feedback.filter(f => f.event_id === event.id).length,
-    averageFeedback: (() => {
-      const eventFeedback = feedback.filter(f => f.event_id === event.id);
-      return eventFeedback.length > 0 
-        ? (eventFeedback.reduce((sum, f) => sum + f.rating, 0) / eventFeedback.length).toFixed(1)
-        : 'N/A';
-    })()
-  })).sort((a, b) => b.registrationCount - a.registrationCount);
-
-  const upcomingEvents = events.filter(e => new Date(e.start_time) > new Date());
-  const completedEvents = events.filter(e => e.status === 'completed');
+  if (isLoading) {
+    return (
+      <Layout currentPage="dashboard" userType="admin">
+        <div className="flex justify-center items-center min-h-[400px]">
+          <div className="text-muted-foreground">Loading dashboard...</div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout currentPage="dashboard" userType="admin">
@@ -56,9 +60,24 @@ export function AdminDashboard() {
             <p className="text-muted-foreground">Campus Event Management Overview</p>
           </div>
           <Button variant="hero" className="shadow-glow">
-            <Calendar className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" />
             Create New Event
           </Button>
+        </div>
+
+        {/* Period Selector */}
+        <div className="flex justify-end">
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="last7days">Last 7 days</SelectItem>
+              <SelectItem value="last30days">Last 30 days</SelectItem>
+              <SelectItem value="last3months">Last 3 months</SelectItem>
+              <SelectItem value="all">All time</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Key Metrics */}
@@ -95,24 +114,22 @@ export function AdminDashboard() {
               <UserCheck className="h-4 w-4 text-success" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {totalRegistrations > 0 ? Math.round((totalAttendance / totalRegistrations) * 100) : 0}%
-              </div>
+              <div className="text-2xl font-bold">{attendanceRate.toFixed(1)}%</div>
               <p className="text-xs text-muted-foreground">
-                {totalAttendance} attended
+                {totalAttendance} out of {totalRegistrations} registered
               </p>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-card border-0 hover:shadow-medium transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Avg Rating</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Average Rating</CardTitle>
               <Star className="h-4 w-4 text-warning" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{averageRating}/5</div>
+              <div className="text-2xl font-bold">-</div>
               <p className="text-xs text-muted-foreground">
-                From {totalFeedback} reviews
+                No feedback yet
               </p>
             </CardContent>
           </Card>
@@ -127,31 +144,43 @@ export function AdminDashboard() {
                 <BarChart3 className="h-5 w-5 text-primary" />
                 Event Performance
               </CardTitle>
+              <CardDescription>Most popular events by registration count</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {eventRegistrationCounts.slice(0, 5).map((event, index) => (
-                  <div key={event.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={index === 0 ? 'success' : 'default'} className="text-xs">
-                          #{index + 1}
-                        </Badge>
-                        <h4 className="font-medium text-sm truncate">{event.name}</h4>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatDate(new Date(event.start_time))}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm font-semibold">{event.registrationCount} registered</div>
-                      <div className="text-xs text-muted-foreground">
-                        {event.attendanceCount} attended
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {eventPopularity.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={eventPopularity}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis 
+                      dataKey="name" 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis 
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Bar 
+                      dataKey="registrations" 
+                      fill="hsl(var(--primary))"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+                  No events to display
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -162,37 +191,33 @@ export function AdminDashboard() {
                 <Activity className="h-5 w-5 text-secondary" />
                 Recent Activity
               </CardTitle>
+              <CardDescription>Latest platform activity</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <div className="w-2 h-2 bg-success rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">New registration for AI Workshop</p>
-                    <p className="text-xs text-muted-foreground">2 minutes ago</p>
+                {events.length > 0 ? (
+                  <>
+                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                      <div className="w-2 h-2 bg-success rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Event management system initialized</p>
+                        <p className="text-xs text-muted-foreground">System ready for registrations</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                      <div className="w-2 h-2 bg-primary rounded-full"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Database connected successfully</p>
+                        <p className="text-xs text-muted-foreground">Ready to track events and registrations</p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="mx-auto h-8 w-8 mb-2" />
+                    <p>No recent activity</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Feedback received for Startup Competition</p>
-                    <p className="text-xs text-muted-foreground">1 hour ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <div className="w-2 h-2 bg-warning rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Event capacity reached: Tech Fest 2024</p>
-                    <p className="text-xs text-muted-foreground">3 hours ago</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                  <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">Bulk check-in completed for Digital Art Seminar</p>
-                    <p className="text-xs text-muted-foreground">1 day ago</p>
-                  </div>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -209,15 +234,15 @@ export function AdminDashboard() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Button variant="outline" className="h-20 flex-col gap-2">
-                <Calendar className="h-6 w-6" />
+                <Plus className="h-6 w-6" />
                 <span>Create Event</span>
               </Button>
               <Button variant="outline" className="h-20 flex-col gap-2">
-                <Users className="h-6 w-6" />
+                <UserCheck className="h-6 w-6" />
                 <span>Bulk Check-in</span>
               </Button>
               <Button variant="outline" className="h-20 flex-col gap-2">
-                <BarChart3 className="h-6 w-6" />
+                <Download className="h-6 w-6" />
                 <span>Export Reports</span>
               </Button>
             </div>
