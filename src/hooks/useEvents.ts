@@ -1,27 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Event } from '@/types';
 
 export const useEvents = () => {
   return useQuery({
     queryKey: ['events'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select(`
-          *,
-          registrations!inner(count),
-          attendance(count)
-        `)
-        .order('start_time', { ascending: true });
-      
-      if (error) throw error;
-      
-      return data?.map(event => ({
-        ...event,
-        registration_count: event.registrations?.length || 0,
-        attendance_count: event.attendance?.length || 0
-      })) as Event[];
+      const response = await fetch('/api/events');
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
+      }
+      return response.json() as Promise<Event[]>;
     }
   });
 };
@@ -31,18 +19,16 @@ export const useRegisterEvent = () => {
   
   return useMutation({
     mutationFn: async ({ eventId, studentId }: { eventId: string; studentId: string }) => {
-      const { data, error } = await supabase
-        .from('registrations')
-        .insert({
-          event_id: eventId,
-          student_id: studentId,
-          source: 'app'
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return data;
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, studentId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to register for event');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -55,14 +41,11 @@ export const useStudentRegistrations = (studentId: string) => {
   return useQuery({
     queryKey: ['registrations', studentId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('registrations')
-        .select('event_id')
-        .eq('student_id', studentId)
-        .eq('status', 'registered');
-      
-      if (error) throw error;
-      return data?.map(reg => reg.event_id) || [];
+      const response = await fetch(`/api/students/${studentId}/registrations`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch student registrations');
+      }
+      return response.json() as Promise<string[]>;
     },
     enabled: !!studentId
   });

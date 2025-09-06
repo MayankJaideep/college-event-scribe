@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Calendar, Users, TrendingUp, Star, Plus, Download, UserCheck, FileText, Activity, BarChart3 } from 'lucide-react';
 import { useEvents } from '@/hooks/useEvents';
 import { formatDate } from '@/lib/dateUtils';
+import { CreateEventForm } from './CreateEventForm';
 
 export function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('last30days');
@@ -59,10 +60,7 @@ export function AdminDashboard() {
             <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
             <p className="text-muted-foreground">Campus Event Management Overview</p>
           </div>
-          <Button variant="hero" className="shadow-glow">
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Event
-          </Button>
+          <CreateEventForm />
         </div>
 
         {/* Period Selector */}

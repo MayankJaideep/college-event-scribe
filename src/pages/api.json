@@ -1,0 +1,17 @@
+
+{
+  "functions": {
+    "GET /api/events": {
+      "function": "src/pages/api/events.ts"
+    },
+    "GET /api/students": {
+      "function": "src/pages/api/students.ts"
+    },
+    "POST /api/register": {
+      "function": "src/pages/api/register.ts"
+    },
+    "POST /api/feedback": {
+      "function": "src/pages/api/feedback.ts"
+    }
+  }
+}

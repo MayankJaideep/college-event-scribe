@@ -9,11 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, MapPin, Users, Clock, Search } from 'lucide-react';
 import { Event } from '@/types';
 import { useEvents, useRegisterEvent, useStudentRegistrations } from '@/hooks/useEvents';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 export function StudentDashboard() {
-  // Mock user data - in a real app, this would come from auth
-  const currentUserId = '550e8400-e29b-41d4-a716-446655440000'; // Mock student ID
+  // In a real app, this would come from auth
+  const currentUserId = '1';
   
   // State for filters and view
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,7 +51,8 @@ export function StudentDashboard() {
     
     // Filter by current view
     if (currentView === 'my-events') {
-      filtered = filtered.filter(event => userRegistrations.includes(event.id));
+      const registeredEventIds = userRegistrations.map(reg => reg.event_id);
+      filtered = filtered.filter(event => registeredEventIds.includes(event.id));
     }
     
     return filtered;
@@ -215,7 +216,7 @@ export function StudentDashboard() {
                 key={event.id}
                 event={event}
                 onRegister={handleRegister}
-                isRegistered={userRegistrations.includes(event.id)}
+                isRegistered={userRegistrations.some(reg => reg.event_id === event.id)}
                 isLoading={registerMutation.isPending}
                 showRegistration={currentView === 'browse'}
               />

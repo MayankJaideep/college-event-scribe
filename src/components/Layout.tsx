@@ -1,4 +1,5 @@
 import { ReactNode, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -36,7 +37,16 @@ const adminNavItems = [
 
 export function Layout({ children, currentPage = 'events', userType = 'student' }: LayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const navigate = useNavigate();
   const navItems = userType === 'admin' ? adminNavItems : studentNavItems;
+
+  const handleSwitch = () => {
+    if (userType === 'admin') {
+      navigate('/student');
+    } else {
+      // Handle "Need Help?"
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,7 +152,7 @@ export function Layout({ children, currentPage = 'events', userType = 'student' 
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={handleSwitch}>
               {userType === 'admin' ? 'Switch to Student' : 'Need Help?'}
             </Button>
           </div>
