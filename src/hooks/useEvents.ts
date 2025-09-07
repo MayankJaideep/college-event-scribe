@@ -6,21 +6,33 @@ export const useEvents = () => {
   return useQuery({
     queryKey: ['events'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get all events
+      const { data: events, error: eventsError } = await supabase
         .from('events')
-        .select(`
-          *,
-          registrations!inner(count)
-        `)
+        .select('*')
         .order('start_time', { ascending: true });
       
-      if (error) throw error;
+      if (eventsError) throw eventsError;
       
-      // Add registration count to each event
-      return data.map(event => ({
-        ...event,
-        registration_count: event.registrations?.[0]?.count || 0
-      }));
+      // Then get registration counts for each event
+      const eventsWithCounts = await Promise.all(
+        events.map(async (event) => {
+          const { count, error: countError } = await supabase
+            .from('registrations')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', event.id)
+            .eq('status', 'registered');
+          
+          if (countError) throw countError;
+          
+          return {
+            ...event,
+            registration_count: count || 0
+          };
+        })
+      );
+      
+      return eventsWithCounts;
     }
   });
 };
