@@ -1,6 +1,3 @@
-Of course. Here is a small, humanized section you can add to your README file to mention the tools you used.
-
-You can place this right after the "Tech Stack" section or within the "My Approach & Personal Learnings" section.
 
 💻 My Development Toolkit
 To build this project, I leaned on a few key tools that made the development process much smoother:
