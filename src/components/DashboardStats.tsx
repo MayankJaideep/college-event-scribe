@@ -1,52 +1,84 @@
-import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useMemo } from 'react';
+import { useEvents } from '@/hooks/useEvents';
+import { useStudents } from '@/hooks/useStudents';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, Users, TrendingUp, Award } from 'lucide-react';
 
 export function DashboardStats() {
-  const [stats, setStats] = useState({ totalEvents: 0, totalRegistrations: 0, attendanceRate: 0 });
+  const { data: events } = useEvents();
+  const { data: students } = useStudents();
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      const eventsCollection = await getDocs(collection(db, 'events'));
-      const registrationsCollection = await getDocs(collection(db, 'registrations'));
-      
-      const totalEvents = eventsCollection.size;
-      const totalRegistrations = registrationsCollection.size;
-      
-      const attendedRegistrations = registrationsCollection.docs.filter(doc => doc.data().attended).length;
-      const attendanceRate = totalRegistrations > 0 ? (attendedRegistrations / totalRegistrations) * 100 : 0;
+  const stats = useMemo(() => {
+    const totalEvents = events?.length || 0;
+    const totalStudents = students?.length || 0;
+    
+    // Calculate total registrations across all events
+    const totalRegistrations = events?.reduce((sum, event) => 
+      sum + (event.registration_count || 0), 0
+    ) || 0;
+    
+    // Calculate upcoming events
+    const now = new Date();
+    const upcomingEvents = events?.filter(event => 
+      new Date(event.start_time) > now
+    ).length || 0;
 
-      setStats({ totalEvents, totalRegistrations, attendanceRate });
+    return {
+      totalEvents,
+      totalStudents,
+      totalRegistrations,
+      upcomingEvents
     };
-
-    fetchStats();
-  }, []);
+  }, [events, students]);
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-4">
       <Card>
-        <CardHeader>
-          <CardTitle>Total Events</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+          <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold">{stats.totalEvents}</p>
+          <div className="text-2xl font-bold">{stats.totalEvents}</div>
+          <p className="text-xs text-muted-foreground">
+            {stats.upcomingEvents} upcoming
+          </p>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader>
-          <CardTitle>Total Registrations</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold">{stats.totalRegistrations}</p>
+          <div className="text-2xl font-bold">{stats.totalStudents}</div>
+          <p className="text-xs text-muted-foreground">
+            Registered in system
+          </p>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader>
-          <CardTitle>Attendance Rate</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Registrations</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-4xl font-bold">{stats.attendanceRate.toFixed(2)}%</p>
+          <div className="text-2xl font-bold">{stats.totalRegistrations}</div>
+          <p className="text-xs text-muted-foreground">
+            Across all events
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
+          <Award className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats.upcomingEvents}</div>
+          <p className="text-xs text-muted-foreground">
+            Events scheduled
+          </p>
         </CardContent>
       </Card>
     </div>

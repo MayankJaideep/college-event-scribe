@@ -1,36 +1,45 @@
-import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEvents } from '@/hooks/useEvents';
+import { EventCard } from './EventCard';
+import { Loader2 } from 'lucide-react';
 
 export function EventList() {
-  const [events, setEvents] = useState([]);
+  const { data: events, isLoading, error } = useEvents();
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      const eventsCollection = await getDocs(collection(db, 'events'));
-      setEvents(eventsCollection.docs.map(doc => ({ ...doc.data(), id: doc.id })));
-    };
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading events...</span>
+      </div>
+    );
+  }
 
-    fetchEvents();
-  }, []);
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-destructive">Error loading events: {error.message}</p>
+      </div>
+    );
+  }
+
+  if (!events || events.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No events found. Create your first event!</p>
+      </div>
+    );
+  }
 
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Upcoming Events</h2>
       <div className="grid gap-4">
         {events.map(event => (
-          <Card key={event.id}>
-            <CardHeader>
-              <CardTitle>{event.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>{event.description}</p>
-              <p><strong>Date:</strong> {new Date(event.startTime).toLocaleDateString()}</p>
-              <p><strong>Time:</strong> {new Date(event.startTime).toLocaleTimeString()}</p>
-              <p><strong>Location:</strong> {event.location}</p>
-            </CardContent>
-          </Card>
+          <EventCard 
+            key={event.id} 
+            event={event} 
+            showRegistration={false}
+          />
         ))}
       </div>
     </div>

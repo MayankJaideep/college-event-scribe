@@ -90,11 +90,23 @@ export function EventCard({ event, onRegister, isRegistered, showRegistration = 
       </CardContent>
 
       {showRegistration && (
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-2">
           {isRegistered ? (
-            <Badge variant="success" className="w-full justify-center py-2">
-              ✓ Registered
-            </Badge>
+            <div className="w-full space-y-2">
+              <Badge variant="success" className="w-full justify-center py-2">
+                ✓ Registered
+              </Badge>
+              {!isUpcoming && (
+                <div className="flex gap-2 w-full">
+                  <Button variant="outline" size="sm" className="flex-1">
+                    Mark Attendance
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1">
+                    Give Feedback
+                  </Button>
+                </div>
+              )}
+            </div>
           ) : (
             <Button 
               onClick={() => onRegister?.(event.id)}
