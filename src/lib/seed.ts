@@ -1,63 +1,86 @@
-
-import { db } from './firebase';
-import { collection, addDoc } from 'firebase/firestore';
-
-const sampleEvents = [
-  {
-    name: 'Tech Conference 2024',
-    description: 'Annual tech conference with a variety of speakers and workshops.',
-    date: '2024-10-26',
-    time: '09:00',
-    location: 'Main Auditorium',
-    capacity: 500,
-    type: 'Conference'
-  },
-  {
-    name: 'Art Workshop',
-    description: 'A hands-on workshop for students interested in painting and drawing.',
-    date: '2024-11-15',
-    time: '14:00',
-    location: 'Fine Arts Building, Room 101',
-    capacity: 50,
-    type: 'Workshop'
-  },
-  {
-    name: 'Career Fair',
-    description: 'Connect with top companies and explore internship and job opportunities.',
-    date: '2024-11-20',
-    time: '10:00',
-    location: 'University Gymnasium',
-    capacity: 1000,
-    type: 'Career'
-  },
-];
-
-const sampleStudents = [
-  {
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    major: 'Computer Science'
-  },
-  {
-    name: 'Bob Williams',
-    email: 'bob@example.com',
-    major: 'Business Administration'
-  },
-];
+import { supabase } from '@/integrations/supabase/client';
 
 export const seedDatabase = async () => {
-  const eventsCollection = collection(db, 'events');
-  const studentsCollection = collection(db, 'students');
+  try {
+    // Create a sample college
+    const { data: college, error: collegeError } = await supabase
+      .from('colleges')
+      .insert({ name: 'Tech University' })
+      .select()
+      .single();
+    
+    if (collegeError) throw collegeError;
 
-  console.log('Seeding events...');
-  for (const event of sampleEvents) {
-    await addDoc(eventsCollection, event);
-  }
-  console.log('Events seeded.');
+    // Create sample students
+    const { data: students, error: studentsError } = await supabase
+      .from('students')
+      .insert([
+        {
+          name: 'John Doe',
+          email: 'john@tech.edu',
+          roll_no: 'TU001',
+          college_id: college.id
+        },
+        {
+          name: 'Jane Smith',
+          email: 'jane@tech.edu',
+          roll_no: 'TU002',
+          college_id: college.id
+        }
+      ])
+      .select();
+    
+    if (studentsError) throw studentsError;
 
-  console.log('Seeding students...');
-  for (const student of sampleStudents) {
-    await addDoc(studentsCollection, student);
+    // Create sample events
+    const now = new Date();
+    const futureDate1 = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000); // 10 days from now
+    const futureDate2 = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000); // 15 days from now
+    const pastDate = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); // 5 days ago
+
+    const { data: events, error: eventsError } = await supabase
+      .from('events')
+      .insert([
+        {
+          name: 'AI & Machine Learning Workshop',
+          type: 'Workshop',
+          description: 'Learn the fundamentals of AI and ML with hands-on projects',
+          location: 'Tech Lab A',
+          capacity: 50,
+          start_time: futureDate1.toISOString(),
+          end_time: new Date(futureDate1.getTime() + 3 * 60 * 60 * 1000).toISOString(), // 3 hours later
+          college_id: college.id
+        },
+        {
+          name: 'Annual Tech Fest 2024',
+          type: 'Fest',
+          description: 'The biggest technology festival of the year with competitions and exhibitions',
+          location: 'Main Campus',
+          capacity: 500,
+          start_time: futureDate2.toISOString(),
+          end_time: new Date(futureDate2.getTime() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours later
+          college_id: college.id
+        },
+        {
+          name: 'Startup Pitch Competition',
+          type: 'Hackathon',
+          description: '48-hour hackathon followed by startup pitch presentations',
+          location: 'Innovation Hub',
+          capacity: 100,
+          start_time: pastDate.toISOString(),
+          end_time: new Date(pastDate.getTime() + 48 * 60 * 60 * 1000).toISOString(), // 48 hours later
+          status: 'completed',
+          college_id: college.id
+        }
+      ])
+      .select();
+    
+    if (eventsError) throw eventsError;
+
+    console.log('Database seeded successfully!');
+    return { college, students, events };
+  } catch (error) {
+    console.error('Error seeding database:', error);
+    throw error;
   }
-  console.log('Students seeded.');
 };
